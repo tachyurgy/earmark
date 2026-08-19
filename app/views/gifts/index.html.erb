@@ -1,0 +1,14 @@
+<h1>Gifts</h1>
+<table>
+  <tr><th>Received</th><th>Donor</th><th class="num">Gift</th><th class="num">Outstanding</th><th>Balanced</th><th></th></tr>
+  <% @gifts.each do |g| %>
+    <tr>
+      <td><%= g.received_at.strftime("%Y-%m-%d") %></td>
+      <td><%= g.donor.name %></td>
+      <td class="num"><%= money(g.amount_cents) %></td>
+      <td class="num"><%= money(g.designatable_cents) %></td>
+      <td><%= g.balanced? ? "yes" : "NO" %></td>
+      <td><%= link_to "open", gift_path(g) %></td>
+    </tr>
+  <% end %>
+</table>

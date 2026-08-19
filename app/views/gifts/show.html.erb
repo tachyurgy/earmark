@@ -1,0 +1,56 @@
+<h1><%= @gift.donor.name %>, <%= money(@gift.amount_cents) %></h1>
+<p class="lede">
+  Received <%= @gift.received_at.strftime("%B %-d, %Y") %> by <%= @gift.source %>,
+  reference <%= @gift.external_ref %>.
+  <% if @gift.refunded_cents.positive? %>
+    <%= money(@gift.refunded_cents) %> has been refunded, leaving
+    <%= money(@gift.designatable_cents) %> designated.
+  <% end %>
+</p>
+
+<div class="invariant">
+  <b>This gift:</b> designatable <%= money(@gift.designatable_cents) %> ==
+  ledger sum <%= money(@gift.allocated_cents) %>
+  <%= @gift.balanced? ? "&#10003;".html_safe : "MISMATCH" %>
+</div>
+
+<h2>Ledger</h2>
+<table>
+  <tr><th>When</th><th>Fund</th><th>Reason</th><th class="num">Delta</th></tr>
+  <% @gift.allocations.includes(:fund).order(:created_at, :id).each do |a| %>
+    <tr>
+      <td><%= a.created_at.strftime("%Y-%m-%d %H:%M:%S") %></td>
+      <td><%= a.fund.name %></td>
+      <td><%= a.reason %></td>
+      <td class="num <%= "neg" if a.delta_cents.negative? %>"><%= money(a.delta_cents) %></td>
+    </tr>
+  <% end %>
+</table>
+
+<h2>Redesignate by weight</h2>
+<%= form_with url: designate_gift_path(@gift), method: :post, class: "inline" do %>
+  <% Fund.order(:name).each do |f| %>
+    <div class="row">
+      <label><%= f.name %> <span style="color:#5b666f">(<%= f.code %>)</span></label>
+      <%= number_field_tag "weights[#{f.code}]", @gift.designations[f.id] ? 1 : 0, min: 0 %>
+    </div>
+  <% end %>
+  <p style="font-size:13px;color:#5b666f;margin:6px 0 0">
+    Weights are apportioned by largest remainder, so the parts always sum to the exact
+    outstanding cents. Three equal weights on <%= money(@gift.designatable_cents) %> will
+    not lose a cent.
+  </p>
+  <button>Apply split</button>
+<% end %>
+
+<h2>Refund</h2>
+<%= form_with url: refund_gift_path(@gift), method: :post, class: "inline" do %>
+  <div class="row">
+    <label>Amount in dollars</label>
+    <%= number_field_tag :amount, nil, step: "0.01", min: "0.01" %>
+  </div>
+  <p style="font-size:13px;color:#5b666f;margin:6px 0 0">
+    Taken pro rata out of the funds currently holding this gift, not off the top.
+  </p>
+  <button>Refund</button>
+<% end %>

@@ -1,0 +1,43 @@
+<h1>Where the money actually is</h1>
+<p class="lede">
+  Earmark is a designated-giving ledger. A gift is split across funds in integer cents,
+  a redesignation moves it, and a refund comes back out of the funds that are really
+  holding it. Nothing is stored as a running total, so nothing can drift away from the
+  ledger that produced it.
+</p>
+
+<div class="invariant">
+  <b>Standing invariant:</b> gifts outstanding <%= money(@total_gifts) %> ==
+  allocated across funds <%= money(@total_allocated) %>
+  <%= @total_gifts == @total_allocated ? "&#10003;".html_safe : "MISMATCH" %>.
+  Checked on every page load against the tables themselves.
+</div>
+
+<h2>Funds</h2>
+<div class="cards">
+  <% @funds.each do |f| %>
+    <div class="card">
+      <div class="code"><%= f.code %></div>
+      <div class="amt"><%= money(f.balance_cents) %></div>
+      <div><%= f.name %></div>
+      <% if f.restricted %><span class="tag">restricted</span><% end %>
+    </div>
+  <% end %>
+</div>
+
+<h2>Recent gifts</h2>
+<table>
+  <tr><th>Received</th><th>Donor</th><th class="num">Gift</th><th class="num">Refunded</th>
+      <th>Designated to</th><th></th></tr>
+  <% @gifts.each do |g| %>
+    <tr>
+      <td><%= g.received_at.strftime("%b %-d") %></td>
+      <td><%= g.donor.name %></td>
+      <td class="num"><%= money(g.amount_cents) %></td>
+      <td class="num <%= "neg" if g.refunded_cents.positive? %>">
+        <%= g.refunded_cents.zero? ? "" : money(g.refunded_cents) %></td>
+      <td><%= g.designations.map { |fid, c| "#{Fund.find(fid).code} #{money(c)}" }.join(", ") %></td>
+      <td><%= link_to "open", gift_path(g) %></td>
+    </tr>
+  <% end %>
+</table>
